@@ -1,0 +1,24 @@
+<?php
+declare(strict_types=1);
+final class ReportService {
+    public function __construct(private Database $db){}
+    public function generate(array $query):array{
+        $type=$query['type']??'frequency';if(!in_array($type,['frequency','leaves','documents','employee'],true))fail('Relatório inválido.');
+        [$start,$end]=period(['start'=>$query['start']??date('Y-m-01'),'end'=>$query['end']??date('Y-m-t')]);if((new DateTimeImmutable($start))->diff(new DateTimeImmutable($end))->days>366)fail('Escolha um período de até 366 dias.');
+        $where='1=1';$args=[];if(!empty($query['employee_id'])){$where.=' AND e.id=?';$args[]=(int)$query['employee_id'];}if(!empty($query['sector_id'])){$where.=' AND e.sector_id=?';$args[]=(int)$query['sector_id'];}
+        $employees=$this->db->all("SELECT e.*,s.name AS sector FROM employees e LEFT JOIN sectors s ON s.id=e.sector_id WHERE $where ORDER BY e.name",$args);$ids=array_column($employees,'id');$names=array_column($employees,null,'id');$headers=[];$rows=[];
+        if($type==='employee'){$headers=['Nome','CPF','Telefone','Setor','Cargo','Admissão','Situação','Controle de ponto'];foreach($employees as $e)$rows[]=[$e['name'],$e['cpf']??'Pendente',$e['phone'],$e['sector']??'',$e['role'],$e['admission']??'',$e['status'],(int)($e['punch_exempt']??0)===1?'Dispensado de ponto':'Com controle de ponto'];}
+        elseif($type==='frequency'){
+            $headers=['Colaborador','Setor','Data','Entrada','Saída intervalo','Retorno intervalo','Saída','Jornada atual','Observação'];
+            foreach($employees as $e){$schedule=$this->db->one('SELECT * FROM schedules WHERE employee_id=?',[$e['id']]);if((int)($e['punch_exempt']??0)===1){$rows[]=[$e['name'],$e['sector']??'',$start.' a '.$end,'','','','',$schedule?$schedule['entry'].'–'.$schedule['departure'].' (referência)':'Sem horário fixo','Dispensado de ponto; sem apuração de faltas ou atrasos'];continue;}$lower=(new DateTimeImmutable($start.' 00:00:00'))->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s');$upper=(new DateTimeImmutable($end.' 00:00:00'))->modify('+1 day')->setTimezone(new DateTimeZone('UTC'))->format('Y-m-d\TH:i:s');
+                $punches=$this->db->all('SELECT * FROM punches WHERE employee_id=? AND at>=? AND at<? ORDER BY at',[$e['id'],$lower,$upper]);$byDay=[];foreach($punches as $p){$d=(new DateTimeImmutable($p['at']))->setTimezone(new DateTimeZone('America/Sao_Paulo'))->format('Y-m-d');if($d>=$start&&$d<=$end)$byDay[$d][]=$p;}
+                $cursor=new DateTimeImmutable($start);$last=new DateTimeImmutable($end);while($cursor<=$last){$d=$cursor->format('Y-m-d');$actual=$byDay[$d]??[];$scheduled=$schedule&&in_array((int)$cursor->format('w'),json_decode($schedule['days'],true),true);if($actual||($scheduled&&$d<=date('Y-m-d'))){$marks=[];foreach($actual as $p)$marks[$p['kind']][]=(new DateTimeImmutable($p['at']))->setTimezone(new DateTimeZone('America/Sao_Paulo'))->format('H:i');$cells=[];foreach(['Entrada','Saída para intervalo','Retorno do intervalo','Saída']as $k)$cells[]=implode(' / ',$marks[$k]??[]);$note=!$actual?'Sem marcação (conferir justificativas)':(count($actual)===4?'Quatro marcações registradas':'Conferir marcações incompletas ou adicionais');$rows[]=[$e['name'],$e['sector']??'',$d,...$cells,$schedule?$schedule['entry'].'–'.$schedule['departure']:'Não cadastrada',$note];}$cursor=$cursor->modify('+1 day');}
+            }
+        }else{
+            $table=$type==='leaves'?'leaves':'documents';$headers=$type==='leaves'?['Colaborador','Setor','Tipo','Início','Fim','Situação','Resposta do RH']:['Colaborador','Setor','Protocolo','Tipo','Início','Fim','Situação'];
+            if($ids){$marks=implode(',',array_fill(0,count($ids),'?'));$list=$this->db->all("SELECT * FROM $table WHERE employee_id IN ($marks) AND start<=? AND end>=? ORDER BY start",[...$ids,$end,$start]);foreach($list as $r){$e=$names[$r['employee_id']];$rows[]=$type==='leaves'?[$e['name'],$e['sector']??'',$r['kind'],$r['start'],$r['end'],$r['status'],$r['review']]:[$e['name'],$e['sector']??'','RH-'.str_pad((string)$r['id'],5,'0',STR_PAD_LEFT),$r['category'],$r['start'],$r['end'],$r['status']];}}
+        }
+        return ['title'=>['frequency'=>'Frequência','leaves'=>'Férias, folgas e ausências','documents'=>'Documentos e atestados','employee'=>'Cadastro de colaboradores'][$type],'start'=>$start,'end'=>$end,'headers'=>$headers,'rows'=>$rows,'notice'=>$type==='frequency'?'Conferência operacional. Usa a jornada atual; ausência de marcação não determina falta. Não substitui registro oficial de ponto.':'Relatório restrito ao pessoal autorizado.'];
+    }
+    public static function csv(array $report):string{$f=fopen('php://temp','r+');fwrite($f,"\xEF\xBB\xBF");fputcsv($f,$report['headers'],';','"','');foreach($report['rows']as $row){$row=array_map(fn($v)=>preg_match('/^[\s]*[=+@\-]/u',(string)$v)?"'".$v:$v,$row);fputcsv($f,$row,';','"','');}rewind($f);return stream_get_contents($f);}
+}

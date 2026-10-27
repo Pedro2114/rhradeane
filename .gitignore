@@ -1,0 +1,5 @@
+RH/database/data/
+RH/storage/
+*.log
+RH/config/database.local.php
+RH/config/app.local.php

@@ -1,0 +1,8 @@
+# Configure estas variáveis no ambiente da hospedagem. Não publique senhas em PUBLIC.
+RH_DB_DRIVER=mysql
+DB_HOST=127.0.0.1
+DB_PORT=3306
+DB_NAME=radeane_rh
+DB_USER=seu_usuario
+DB_PASS=sua_senha
+# Para testes locais: RH_DB_DRIVER=sqlite

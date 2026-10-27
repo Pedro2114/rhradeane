@@ -1,0 +1,7 @@
+Options -Indexes
+DirectoryIndex index.php
+RewriteEngine On
+RewriteRule ^(?:RH|private|\.env)(?:/|$) - [F,L,NC]
+RewriteCond %{REQUEST_FILENAME} -f
+RewriteRule \.(?:css|js|png|woff2|ico)$ - [L,NC]
+RewriteRule ^ index.php [QSA,L]

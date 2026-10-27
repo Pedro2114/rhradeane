@@ -1,0 +1,19 @@
+<?php
+declare(strict_types=1);
+if(PHP_SAPI!=='cli')exit;
+require __DIR__.'/../RH/app/Core/Database.php';require __DIR__.'/../RH/app/Core/Http.php';require __DIR__.'/../RH/app/Services/ImportService.php';require __DIR__.'/../RH/app/Services/ReportService.php';require __DIR__.'/../RH/app/Services/Migrations.php';
+function expect(bool $condition,string $message):void{if(!$condition)throw new RuntimeException($message);}
+$db=new Database(['driver'=>'sqlite','path'=>':memory:','user'=>'','password'=>'']);$m=new Migrations($db,sys_get_temp_dir());$m->initial();$m->apply('002_importacao_relatorios');$import=new ImportService($db);
+function workbook(string $value,bool $formula=false):string{
+    $file=tempnam(sys_get_temp_dir(),'rh-test-xlsx-');$zip=new ZipArchive();$zip->open($file,ZipArchive::OVERWRITE);
+    $zip->addFromString('[Content_Types].xml','<?xml version="1.0"?><Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="xml" ContentType="application/xml"/></Types>');
+    $zip->addFromString('xl/workbook.xml','<?xml version="1.0"?><workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets><sheet name="Equipe" sheetId="1" r:id="rId1"/></sheets></workbook>');
+    $zip->addFromString('xl/_rels/workbook.xml.rels','<?xml version="1.0"?><Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Target="worksheets/sheet1.xml" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet"/></Relationships>');
+    $xml='<?xml version="1.0"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main"><sheetData><row r="1">';foreach(['Nome','CPF','Telefone','Setor']as $i=>$v)$xml.='<c r="'.chr(65+$i).'1" t="inlineStr"><is><t>'.$v.'</t></is></c>';$xml.='</row><row r="2">';foreach(['Pessoa de Teste',$value,'21999990000','Pedagógico']as $i=>$v)$xml.='<c r="'.chr(65+$i).'2" t="inlineStr">'.($formula&&$i===0?'<f>HYPERLINK("https://example.com")</f>':'').'<is><t>'.$v.'</t></is></c>';$xml.='</row></sheetData></worksheet>';$zip->addFromString('xl/worksheets/sheet1.xml',$xml);$zip->close();$bytes=file_get_contents($file);unlink($file);return $bytes;
+}
+expect(validCpf('012.345.678-90')==='01234567890','CPF com zero inicial deve ser preservado.');
+$result=$import->parse(['filename'=>'equipe.xlsx','base64'=>base64_encode(workbook('01234567890'))]);expect(count($result)===1,'Excel deve ler uma linha.');expect($result[0]['cpf']==='01234567890','Excel deve preservar o zero inicial.');expect($result[0]['sector']==='Pedagógico','Excel deve preservar acentuação.');expect(!$result[0]['errors'],'Linha Excel válida não deve ter erros.');
+foreach([['filename'=>'falso.xlsx','base64'=>base64_encode('arquivo inválido')],['filename'=>'formula.xlsx','base64'=>base64_encode(workbook('01234567890',true))]]as $body){$rejected=false;try{$import->parse($body);}catch(HttpError $e){$rejected=$e->status===400;}expect($rejected,'Arquivo falso e fórmulas devem ser recusados com erro de validação.');}
+$report=['headers'=>['Nome'],'rows'=>[['=HYPERLINK("exemplo")'],['+123'],['Pessoa']]];$csv=ReportService::csv($report);expect(str_contains($csv,"'=HYPERLINK"),'CSV deve neutralizar fórmulas.');expect(str_contains($csv,"'+123"),'CSV deve neutralizar prefixo +.');
+$stored='0123456789abcdef0123456789abcdef:'.bin2hex(sodium_crypto_pwhash_scryptsalsa208sha256(64,'senha-ficticia-teste','0123456789abcdef0123456789abcdef',524288,16777216));expect(passwordCheck('senha-ficticia-teste',$stored),'Credencial legada deve ser aceita.');expect(!passwordCheck('outra-senha',$stored),'Credencial incorreta deve ser recusada.');
+echo "OK: Excel, CPF com zero inicial, formatos inválidos, fórmulas, exportação CSV e senha legada.\n";
