@@ -38,6 +38,7 @@ final class ApiController {
         $u=isset($_SESSION['user_id'])?$db->one('SELECT * FROM users WHERE id=? AND active=1',[$_SESSION['user_id']]):null;
         if(!$u||($_SESSION['expires']??0)<time()||(int)$u['session_version']!==($_SESSION['version']??-1))fail('Entre na sua conta para continuar.',401);$this->user=$u;
         if($method!=='GET'&&!hash_equals($_SESSION['csrf']??'',$_SERVER['HTTP_X_CSRF_TOKEN']??''))fail('Sessão inválida. Atualize a página.',403);
+        (new InstitutionalController($db,$this->config,fn($action,$detail)=>$this->audit($action,$detail)))->dispatch($path,$method,$b,$u);
         (new WorkController($db,$this->config,fn($action,$detail)=>$this->audit($action,$detail)))->dispatch($path,$method,$b,$u,fn()=>$this->rh());
         $docRequests->managerRoute($path,$method,$b,fn()=>$this->rh());
         $people->managerRoute($path,$method,$b,$u,fn()=>$this->rh());

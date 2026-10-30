@@ -9,4 +9,5 @@ $db=new Database($databaseConfig);$migrations=new Migrations($db,$config['storag
 session_name('radeane_rh');session_save_path($config['storage'].'/sessions');ini_set('session.use_strict_mode','1');
 session_set_cookie_params(['lifetime'=>28800,'path'=>'/','httponly'=>true,'samesite'=>'Strict','secure'=>!empty($_SERVER['HTTPS'])&&$_SERVER['HTTPS']!=='off']);session_start();
 require __DIR__.'/Services/PeopleProgram.php';require __DIR__.'/Controllers/PeopleController.php';require __DIR__.'/Controllers/WorkController.php';require __DIR__.'/Controllers/DocumentRequestController.php';
+require __DIR__.'/Controllers/InstitutionalController.php';
 require __DIR__.'/Controllers/ApiController.php';

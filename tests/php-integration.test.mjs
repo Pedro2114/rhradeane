@@ -28,8 +28,8 @@ test('Fluxo completo, isolamento de contas, arquivos privados e validações', a
   assert.equal((await admin('/sectors','POST',{name:'Pedagógico'},{'X-CSRF-Token':''})).status,403);
   assert.equal((await admin('/sectors','POST',{name:'Pedagógico'},{Origin:'https://outro.exemplo'})).status,403);
   assert.equal((await admin('/me')).value.user.role,'system_admin');
-  assert.equal((await admin('/system')).value.migrations.filter(x=>!x.applied).length,8);
-  assert.equal((await admin('/system/migrations','POST',{})).value.applied,8);
+  assert.equal((await admin('/system')).value.migrations.filter(x=>!x.applied).length,9);
+  assert.equal((await admin('/system/migrations','POST',{})).value.applied,9);
   assert.equal((await admin('/system/migrations','POST',{})).value.applied,0);
   const sector=(await admin('/sectors','POST',{name:'Pedagógico'})).value.id;
   const a=(await admin('/employees','POST',{name:'Alice',cpf:'52998224725',role:'Professora',sector_id:sector,admission:'2026-01-05'})).value.id;
@@ -166,6 +166,55 @@ test('Fluxo completo, isolamento de contas, arquivos privados e validações', a
   for(const type of ['indicators','awards','work','tasks','talents']){const result=await rh('/reports?type='+type+'&start=2025-12-01&end=2026-11-30');assert.equal(result.status,200,type+': '+JSON.stringify(result.value));assert.ok(result.value.headers.length>5);assert.ok(result.value.rows.length>0,type);assert.ok(result.value.summary);}
   assert.equal((await rh('/reports?type=talents&employee_id='+a+'&start=2026-01-01&end=2026-12-31')).status,400);
 
+
+  // Fontes institucionais: acesso explícito, segregação de revisão e anexos privados.
+  assert.equal((await anonymous('/institutional')).status,401);
+  assert.deepEqual((await alice('/institutional')).value.kinds,[]);
+  assert.equal((await rh('/institutional/access')).status,403);
+  assert.equal('familias' in (await rh('/institutional')).value.kinds,false);
+  const adminId=(await admin('/me')).value.user.id,aliceId=(await alice('/me')).value.user.id;
+  const familyBody={kind:'familias',title:'Escuta de teste sem identificação infantil',event_date:'2026-01-05',due:'2026-01-06',owner_id:adminId,payload:{reference:'Protocolo fictício 01',nature:'Preocupação',context:'Relato reservado de teste, ainda não apurado.',referral:'Coordenação ouviu as partes.',response:'Retorno realizado com a família.',related_employee_id:a}};
+  assert.equal((await rh('/institutional/records','POST',familyBody)).status,403);
+  const family=await admin('/institutional/records','POST',familyBody);assert.equal(family.status,200,JSON.stringify(family.value));
+  const familyPath='/institutional/records/'+family.value.id;
+  assert.equal((await rh(familyPath)).status,403);
+  assert.equal((await admin(familyPath+'/metrics')).status,400);
+  assert.equal((await admin(familyPath+'/review','POST',{revision:1,status:'Em conferência'})).status,200);
+  assert.equal((await admin(familyPath+'/review','POST',{revision:2,status:'Validado',review:'Tentativa de autovalidação.'})).status,403);
+  assert.equal((await alice('/institutional/access','POST',{user_id:aliceId,kind:'familias',enabled:true})).status,403);
+  assert.equal((await admin('/institutional/access','POST',{user_id:aliceId,kind:'familias',enabled:true})).status,200);
+  assert.equal((await alice(familyPath)).status,200);
+  assert.equal((await alice(familyPath+'/review','POST',{revision:2,status:'Validado',review:'Contexto apurado e retorno conferido pela outra pessoa designada.'})).status,200);
+  assert.equal((await admin(familyPath,'PATCH',{...familyBody,revision:3})).status,400);
+  const familyReport=await alice('/institutional/report?kind=familias&start=2026-01-01&end=2026-01-31');assert.equal(familyReport.status,200);assert.equal(familyReport.value.rows.length,1);assert.equal(JSON.stringify(familyReport.value).includes(familyBody.payload.context),false);
+  assert.equal((await rh('/institutional/report?kind=familias&start=2026-01-01&end=2026-01-31')).status,403);
+  assert.equal((await admin('/institutional/access','POST',{user_id:aliceId,kind:'familias',enabled:false})).status,200);
+  assert.equal((await alice(familyPath)).status,403);
+  assert.equal((await alice('/institutional')).value.records.length,0);
+  const sourceBody={kind:'planejamento',title:'Planejamento de teste',event_date:'2026-01-05',due:'2026-01-06',owner_id:adminId,payload:{objective:'Entrega prevista para a turma fictícia.',acceptance:'Conteúdo e objetivos conferidos pela coordenação.'},members:[{employee_id:a,result:'Pendente'}]};
+  const source=await admin('/institutional/records','POST',sourceBody);assert.equal(source.status,200,JSON.stringify(source.value));const sourcePath='/institutional/records/'+source.value.id;
+  assert.equal((await admin(sourcePath+'/files','POST',{revision:1,filename:'evidencia.pdf',base64:cv.base64})).status,200);
+  const sourceDetail=(await admin(sourcePath)).value;assert.equal(sourceDetail.record.revision,2);
+  const privateFile='/institutional/files/'+sourceDetail.files[0].id;
+  assert.equal((await bob(privateFile)).status,403);assert.equal((await rh(privateFile)).status,200);
+  assert.equal((await admin(sourcePath,'PATCH',{...sourceBody,revision:1})).status,409);
+  assert.equal((await admin(sourcePath+'/review','POST',{revision:2,status:'Em conferência'})).status,200);
+  assert.equal((await rh(sourcePath+'/review','POST',{revision:3,status:'Validado',review:'Não pode validar base incompleta.'})).status,400);
+  assert.equal((await rh(sourcePath+'/review','POST',{revision:3,status:'Ajuste solicitado',review:'Completar comprovação dos participantes.'})).status,200);
+  const revised={...sourceBody,revision:4,members:[{employee_id:a,result:'Comprovado',delivered:'2026-01-06',evidence:'Entrega correta e conferida.'},{employee_id:b,result:'Justificado',evidence:'Fora desta entrega por substituição registrada.'}]};
+  assert.equal((await admin(sourcePath,'PATCH',revised)).status,200);
+  assert.equal((await admin(sourcePath+'/review','POST',{revision:5,status:'Em conferência'})).status,200);
+  assert.equal((await rh(sourcePath+'/review','POST',{revision:6,status:'Validado',review:'População, prazo, conteúdo e justificativas conferidos.'})).status,200);
+  const sourceMetrics=await rh(sourcePath+'/metrics');assert.equal(sourceMetrics.status,200);assert.equal(sourceMetrics.value.members[0].actual,1);assert.equal(sourceMetrics.value.members[1].expected,0);assert.equal(sourceMetrics.value.members[1].excluded,true);
+  const sourceCsv=await rh('/institutional/report?kind=planejamento&start=2026-01-01&end=2026-01-31&format=csv');assert.equal(sourceCsv.status,200);assert.match(sourceCsv.value,/Alice/);
+  const lateSource=await admin('/institutional/records','POST',{...sourceBody,members:[{employee_id:a,result:'Comprovado',delivered:'2026-01-07',evidence:'Entrega após o prazo, embora com qualidade.'}]});const latePath='/institutional/records/'+lateSource.value.id;
+  assert.equal((await admin(latePath+'/review','POST',{revision:1,status:'Em conferência'})).status,200);
+  assert.equal((await rh(latePath+'/review','POST',{revision:2,status:'Validado',review:'Entrega fora do prazo conferida.'})).status,200);
+  assert.equal((await rh(latePath+'/metrics')).value.members[0].actual,0);
+  const project=await admin('/institutional/records','POST',{...sourceBody,kind:'projetos',payload:{objective:'Projeto de teste',outcome:'Resultado de teste',milestones:[{title:'Marco um',due:'2026-01-06',completed:'2026-01-05',evidence:'Relatório conferido'}]},members:[{employee_id:a,result:'Comprovado',delivered:'2026-01-05',evidence:'Participação comprovada'}]});assert.equal(project.status,200);
+  const training=await admin('/institutional/records','POST',{...sourceBody,kind:'formacoes',payload:{objective:'Formação de teste',provider:'Formador fictício'},members:[{employee_id:a,result:'Comprovado',delivered:'2026-01-05',evidence:'Certificado conferido'}]});assert.equal(training.status,200);
+  assert.equal((await admin('/institutional/records','POST',{...sourceBody,members:[{employee_id:a,result:'Comprovado',delivered:'2026-01-05',evidence:'ok'},{employee_id:a,result:'Pendente'}]})).status,400);
+  assert.equal((await fetch(url+'/institutional.js')).status,200);
 
   const expiration=new Date().toLocaleDateString('en-CA',{timeZone:'America/Sao_Paulo'});
   assert.equal((await alice('/doc-requests')).status,403);

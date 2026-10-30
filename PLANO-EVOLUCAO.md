@@ -2,7 +2,7 @@
 
 Pedido de Pedro em 30/10/2026: desenvolver em blocos, testar, publicar e conferir cada entrega; manter a identidade visual do RH publicado. Apresentar opinião crítica e sugestões junto da execução.
 
-## Bloco 1 — base operacional (implementado; publicação e validação MySQL pendentes)
+## Bloco 1 — base operacional (publicado em 30/10/2026; migrações 001–009 conferidas no MySQL)
 
 - Banco de talentos em `/banco-de-talentos`: PDF privado, autorização registrada com versão e cópia do aviso, pesquisa e acompanhamento do RH. Recebimento desabilitado até configuração institucional de privacidade.
 - Checklist de documentos por pessoa, link imprevisível válido por até sete dias, cancelamento, recebimento na ficha e reenvio após pedido de correção. Sem acesso público ao prontuário.
@@ -15,6 +15,16 @@ Pedido de Pedro em 30/10/2026: desenvolver em blocos, testar, publicar e conferi
 - Registros iniciais das seis ferramentas da foto: organograma, RACI, descrições de cargos, remuneração variável, sucessão e Partnership/LTI. Organograma nesta entrega é cadastro textual; árvore interativa e vínculos formais pertencem ao bloco 3. Não há cálculo financeiro ou contratação automática.
 
 ## Bloco 2 — fontes institucionais e central de pendências
+
+### Entrega 2A — implementada; publicação em conferência
+
+- Nova aba **Rotinas institucionais**: atendimentos familiares, projetos com marcos e participantes, formações/certificados e entregas de planejamento com qualidade e prazo.
+- Anexos PDF/JPG/PNG privados por área, histórico de andamento/consulta, revisão concorrente, rascunho, encaminhamento e conferência por pessoa diferente do autor e responsável. Fontes validadas são imutáveis; arquivamento exige outra pessoa e motivo.
+- Atendimentos restritos à direção e às pessoas explicitamente designadas por área. Administrador de RH não recebe acesso automático a relatos familiares. Acesso designado é à área inteira; a direção deve limitar a equipe. Não há filtragem por turma nesta entrega.
+- Relatórios por área, período, pessoa e setor; CSV com proteção contra fórmulas. Relatórios de famílias omitem contexto, referência familiar, encaminhamento e retorno; detalhes só na ficha restrita. Lista principal tem busca, pessoa, setor e situação.
+- Fila de pendências institucionais com prazo vencido e conferência. As filas de tarefas e documentos permanecem nas telas próprias; divergências de ponto ainda não integram esta central.
+- Apuração por fonte validada: uma atividade por participante, comprovado/não comprovado, justificados explicitamente excluídos; planejamento considera prazo além da qualidade conferida. Fonte e revisão são identificadas. É uma prévia da fonte, ainda não grava nem consolida automaticamente `performance_metrics`.
+- Ainda pendentes do bloco 2: pesquisas de satisfação, consolidação entre fontes com rastreabilidade, central unificada, calendário/feriados, justificativas parciais, tolerâncias e correções aprovadas de ponto. Não há mudança automática em prêmios, remuneração ou carreira.
 
 - Ficha de atendimento à família: acesso restrito por função; data, responsável, assunto, elogio/preocupação/dúvida, professor relacionado, encaminhamento, evidência e retorno. Minimizar identificação de crianças e conteúdo sensível. Manifestação não determina nota ou penalidade automática; contexto e apuração são obrigatórios.
 - Projetos: objetivo, responsável, participantes, marcos, prazos, entregas, anexos e resultado institucional. Participação registrada por pessoa.
