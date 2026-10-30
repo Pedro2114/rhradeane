@@ -1,5 +1,7 @@
 # Publicação — fontes institucionais 2A
 
+Publicado em 30/10/2026: código fbb3f53 e ajuste de cache 9454a03. Backup privado anterior em `/home2/radean67/backups/RH-antes-bloco2A-20261030.zip`. Migração 010 aplicada pelo painel com cópia prévia do MySQL; 001–009 preservadas e conferidas. Quatro formulários e consulta de relatório conferidos online. Não foram criados registros de teste nem concedidos acessos a pessoas reais.
+
 O bloco 1 foi publicado em 30/10/2026. As migrações originais 001–003 do servidor têm bytes diferentes do arquivo git archive; foram preservadas do backup e os checksums conferidos. **Não reenviar migrações já aplicadas nem alterar os checksums no banco.**
 
 Pacote incremental desta entrega: PUBLIC/index.html (versão dos assets para evitar cache antigo), PUBLIC/app.js, PUBLIC/institutional.js, PUBLIC/radeane-brand.css, RH/app/bootstrap.php, RH/app/Controllers/ApiController.php, RH/app/Controllers/InstitutionalController.php, RH/app/Services/Migrations.php e RH/database/migrations/010_fontes_institucionais.php.

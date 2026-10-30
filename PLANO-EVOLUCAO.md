@@ -16,7 +16,9 @@ Pedido de Pedro em 30/10/2026: desenvolver em blocos, testar, publicar e conferi
 
 ## Bloco 2 — fontes institucionais e central de pendências
 
-### Entrega 2A — implementada; publicação em conferência
+### Entrega 2A — publicada em 30/10/2026
+
+Migração 010 aplicada no MySQL com cópia privada prévia; histórico 001–009 sem alerta de checksum. Formulários e relatório conferidos online, sem inserir registros fictícios. Fluxos de gravação, isolamento, anexos e revisão testados em SQLite temporário; não houve teste de gravação de ficha fictícia no MySQL real.
 
 - Nova aba **Rotinas institucionais**: atendimentos familiares, projetos com marcos e participantes, formações/certificados e entregas de planejamento com qualidade e prazo.
 - Anexos PDF/JPG/PNG privados por área, histórico de andamento/consulta, revisão concorrente, rascunho, encaminhamento e conferência por pessoa diferente do autor e responsável. Fontes validadas são imutáveis; arquivamento exige outra pessoa e motivo.
