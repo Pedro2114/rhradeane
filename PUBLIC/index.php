@@ -9,7 +9,7 @@ try{
     if($path==='/theme.css'){
         $settings=array_column($db->all('SELECT * FROM system_settings'),'setting_value','setting_key');$accent=$settings['accent']??'#cf1034';if(!preg_match('/^#[0-9a-fA-F]{6}$/',$accent))$accent='#cf1034';$font=in_array($settings['font']??'Sora',['Sora','Inter'],true)?($settings['font']??'Sora'):'Sora';header('Content-Type: text/css; charset=utf-8');echo ':root{--brand-red:'.$accent.';--coral:'.$accent.'}h1,h2,h3,h4,.brand strong{font-family:'.$font.',Inter,sans-serif}';exit;
     }
-    if(!in_array($path,['/','/login','/atestados','/ponto'],true))fail('Não encontrado.',404);
+    if(!preg_match('~^/enviar-documentos/[a-f0-9]{64}$~',$path)&&!in_array($path,['/','/login','/atestados','/ponto','/banco-de-talentos'],true))fail('Não encontrado.',404);
     header('Content-Type: text/html; charset=utf-8');readfile(__DIR__.'/index.html');
 }catch(Throwable $e){
     $status=$e instanceof HttpError?$e->status:500;$message=$status===500?'Não foi possível concluir. Confira a configuração PHP e do banco.':$e->getMessage();

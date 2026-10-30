@@ -1,6 +1,6 @@
 # Portal Radeane — Gestão de Pessoas em PHP
 
-Versão 0.2. Aplicação PHP com banco MySQL na hospedagem e SQLite na prévia local. O Node.js não faz parte da execução do sistema; é usado apenas pelo teste automatizado de integração.
+Versão 0.4 — primeiro bloco de desenvolvimento de pessoas. Aplicação PHP com banco MySQL na hospedagem e SQLite na prévia local. O Node.js não faz parte da execução do sistema; é usado apenas pelo teste automatizado de integração.
 
 ## Estrutura
 
@@ -44,7 +44,7 @@ Na hospedagem, o document root precisa apontar para `PUBLIC`. Nunca exponha a ra
 
 O iniciador procura PHP no PATH e, neste computador, também em `../ferramentas/php/php.exe`. Foi preparado um PHP portátil oficial fora da aplicação, sem instalação de serviço no Windows. O ZIP de código não inclui esse runtime.
 
-Endereços: `/` para o painel, `/ponto` para o tablet e `/atestados` para o portal do funcionário. O servidor local aceita conexões somente neste computador; ainda não está disponível no celular/tablet físico nem no subdomínio público.
+Endereços: `/` para o painel, `/ponto` para o tablet, `/atestados` para o portal do funcionário e `/banco-de-talentos` para currículos (recebimento exige configuração institucional de privacidade). Links de documentos usam `/enviar-documentos/<código temporário>`. O servidor local aceita conexões somente neste computador; ainda não está disponível no celular/tablet físico nem no subdomínio público.
 
 A demonstração usa dados fictícios em memória e não grava registros no banco. Migrações, importações, relatórios do banco e alterações técnicas exigem uma conta real.
 
@@ -74,7 +74,7 @@ Cada funcionário tem cadastro com CPF, contato, setor, cargo, admissão e obser
 
 O botão **Relatório deste funcionário** abre os filtros já vinculados à pessoa. O menu **Relatórios** permite consultar frequência, férias/folgas/ausências, documentos/atestados e cadastro, filtrando funcionário, setor e período. Há download CSV e impressão pelo navegador, que também permite salvar em PDF. O CSV neutraliza prefixos de fórmula.
 
-O relatório de frequência usa a jornada atual, sem histórico de vigência. “Sem marcação” pede conferência e não determina automaticamente uma falta. Não há cálculo oficial de horas, atrasos, banco de horas ou remuneração.
+O relatório de frequência usa a grade preservada por vigência quando vinculada; cadastros anteriores usam a jornada atual. “Sem marcação” pede conferência e não determina automaticamente uma falta. Não há cálculo oficial de horas, atrasos, banco de horas ou remuneração.
 
 ## Ponto, documentos e férias
 
@@ -126,4 +126,9 @@ A conferência visual foi feita no servidor principal em demonstração. O servi
 
 ## Evoluções restantes
 
-Publicação e domínio, integração de login com o CRM, validação MySQL na hospedagem, regras avançadas de jornadas/férias, validação do ponto para uso oficial, recuperação de senha e critérios/apuração de premiação conforme regulamento aprovado. Perfis por coordenação de setor e auditor independente também permanecem para evolução.
+Publicação e domínio, integração de login com o CRM, validação MySQL na hospedagem, regras avançadas de jornadas/férias, validação do ponto para uso oficial, recuperação de senha e evolução das fontes automáticas de avaliação institucional. O primeiro bloco de premiações já permite ciclos, evidências e aprovação segregada, conforme o edital recebido. Perfis por coordenação de setor e auditor independente também permanecem para evolução.
+
+
+## Entrega em blocos
+
+Consulte [PLANO-EVOLUCAO.md](PLANO-EVOLUCAO.md) para a distinção entre recursos implementados e próximos blocos aprovados. Consulte [PUBLICACAO-BLOCO-1.md](PUBLICACAO-BLOCO-1.md) antes de atualizar a hospedagem. A prévia isolada e o GitHub não atualizam o domínio automaticamente.
